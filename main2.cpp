@@ -10,10 +10,10 @@
 
 // Define the register map
 enum RegisterMap {
-    JPEG_CTRL = 0x00,
-    JPEG_STATUS = 0x04,
-    JPEG_SRC = 0x08,
-    JPEG_DST = 0x0c
+    JPEG_CTRL = 0xce000000,
+    JPEG_STATUS = 0xce000004,
+    JPEG_SRC = 0xce000008,
+    JPEG_DST = 0xce00000c
 };
 
 // Define the JPEG_CTRL register bits
