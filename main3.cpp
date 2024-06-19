@@ -97,8 +97,8 @@ int main() {
     }
 
     // Initialize/reset the decoder
-    jpegCtrl = (1 << JPEG_CTRL_ABORT_SHIFT); // Set the START bit
-    jpegCtrl |= (imageData.size() << LENGTH); // Set the LENGTH field
+    jpegctrl = (1 << JPEG_CTRL_ABORT_SHIFT); // Set the ABORT bit
+    //jpegctrl = (imageData.size() << JPEG_CTRL_LENGTH_SHIFT); // Set the LENGTH field
 
     // Allocate memory for the RGB565 buffer
     uint16_t* rgb565BufferPtr = new uint16_t[imageData.size() / 3 * 2];
@@ -115,11 +115,12 @@ int main() {
     printf("Set JPEG_DST register");
 
     // Start the decoder
-    jpegCtrl = (1 << JPEG_CTRL_ABORT_SHIFT); // Set the START bit
+    jpegctrl = (1 << JPEG_CTRL_ABORT_SHIFT); // Set the START bit
+    jpegctrl = (1 << JPEG_CTRL_START_SHIFT) | imageData.size()); // Set the START bit
     printf("Started the decoder");
 
     // Wait for the decoder to finish
-    while ((*jpeg_status & (1 << JPEG_STATUS_BUSY_SHIFT)) == 0) {
+    while ((*jpeg_status & (1 << JPEG_STATUS_BUSY_SHIFT)) != 0) {
         // Busy-wait
     }
     printf("Decoder finished");
