@@ -122,7 +122,7 @@ int main() {
     // Wait for the decoder to finish
     while ((*jpeg_status & (1 << JPEG_STATUS_BUSY_SHIFT)) != 0) {
         // Busy-wait
-        printf("%d\n", *jpeg_status)
+        printf("%d\n", *jpeg_status);
     }
     printf("Decoder finished\n");
     *jpeg_ctrl = (1 << JPEG_CTRL_ABORT_SHIFT); // Set the ABORT bit
