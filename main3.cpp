@@ -77,11 +77,11 @@ int main() {
     // Map the register base address
     void* reg_base = mmap(NULL, getpagesize(), PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, CONFIG_JPEG_HW_BASE);
     if (reg_base == MAP_FAILED) {
-        printf("Error mapping register base address");
+        printf("Error mapping register base address\n");
         close(mem_fd);
         return 1;
     }
-    printf("Register base address mapped successfully");
+    printf("Register base address mapped successfully\n");
 
     volatile uint32_t* jpeg_ctrl = (volatile uint32_t*)((char*)reg_base + JPEG_CTRL);
     volatile uint32_t* jpeg_status = (volatile uint32_t*)((char*)reg_base + JPEG_STATUS);
@@ -92,7 +92,7 @@ int main() {
     std::string filename = "image.jpg";
     std::vector<uint8_t> imageData = readJpegImage(filename);
     if (imageData.empty()) {
-        printf("Failed to read image data");
+        printf("Failed to read image data\n");
         return -1;
     }
 
@@ -102,61 +102,62 @@ int main() {
 
     // Allocate memory for the RGB565 buffer
     uint16_t* rgb565BufferPtr = new uint16_t[imageData.size() / 3 * 2];
-    printf("Allocated memory for RGB565 buffer");
+    printf("Allocated memory for RGB565 buffer\n");
 
     // Set the JPEG_SRC register to the address of the JPEG image data
     uintptr_t jpegSrcAddr = reinterpret_cast<uintptr_t>(&imageData[0]);
     *jpeg_src = static_cast<uint32_t>(jpegSrcAddr);
-    printf("Set JPEG_SRC register");
+    printf("Set JPEG_SRC register\n");
 
     // Set the JPEG_DST register to the address of the RGB565 buffer
     uintptr_t jpegDstAddr = reinterpret_cast<uintptr_t>(rgb565BufferPtr);
     *jpeg_dst = static_cast<uint32_t>(jpegDstAddr);
-    printf("Set JPEG_DST register");
+    printf("Set JPEG_DST register\n");
 
     // Start the decoder
     *jpeg_ctrl = (1 << JPEG_CTRL_ABORT_SHIFT); // Set the ABORT bit
     *jpeg_ctrl = ((1 << JPEG_CTRL_START_SHIFT) | (imageData.size() & JPEG_CTRL_LENGTH_MASK)); // Set the START bit and LENGTH field
-    printf("Started the decoder");
+    printf("Started the decoder\n");
 
     // Wait for the decoder to finish
     while ((*jpeg_status & (1 << JPEG_STATUS_BUSY_SHIFT)) != 0) {
         // Busy-wait
+        printf("%d\n", *jpeg_status)
     }
-    printf("Decoder finished");
+    printf("Decoder finished\n");
     *jpeg_ctrl = (1 << JPEG_CTRL_ABORT_SHIFT); // Set the ABORT bit
 
     // Open the framebuffer device
     int fbfd = open("/dev/fb0", O_RDWR);
     if (fbfd == -1) {
-        printf("Error opening framebuffer device");
+        printf("Error opening framebuffer device\n");
         return -1;
     }
-    printf("/dev/fb0 opened successfully");
+    printf("/dev/fb0 opened successfully\n");
 
     // Get the framebuffer fixed screen information
     struct fb_fix_screeninfo fb_fix;
     if (ioctl(fbfd, FBIOGET_FSCREENINFO, &fb_fix) == -1) {
-        printf("Error getting framebuffer fixed screen information");
+        printf("Error getting framebuffer fixed screen information\n");
         return -1;
     }
-    printf("Got framebuffer fixed screen information");
+    printf("Got framebuffer fixed screen information\n");
 
     // Get the framebuffer variable screen information
     struct fb_var_screeninfo fb_var;
     if (ioctl(fbfd, FBIOGET_VSCREENINFO, &fb_var) == -1) {
-        perror("Error getting framebuffer variable screen information");
+        perror("Error getting framebuffer variable screen information\n");
         return 1;
     }
-    printf("Got framebuffer variable screen information");
+    printf("Got framebuffer variable screen information\n");
 
     // Map the framebuffer into memory
     char* fbmem = static_cast<char*>(mmap(NULL, fb_fix.smem_len, PROT_READ | PROT_WRITE, MAP_SHARED, fbfd, 0));
     if (fbmem == MAP_FAILED) {
-        printf("Error mapping framebuffer into memory");
+        printf("Error mapping framebuffer into memory\n");
         return 1;
     }
-    printf("Mapped framebuffer into memory");
+    printf("Mapped framebuffer into memory\n");
 
     // Copy the RGB565 data into the framebuffer
     uint16_t* rgb565Ptr = reinterpret_cast<uint16_t*>(rgb565BufferPtr); // Use the correct pointer
@@ -166,23 +167,23 @@ int main() {
             *((uint16_t*)fbmem + y * fb_fix.line_length / 2 + x) = pixel;
         }
     }
-    printf("Copied RGB565 data into framebuffer");
+    printf("Copied RGB565 data into framebuffer\n");
 
     // Unmap the framebuffer from memory
     munmap(fbmem, fb_fix.smem_len);
-    printf("Unmapped framebuffer from memory");
+    printf("Unmapped framebuffer from memory\n");
 
     // Close the framebuffer device
     close(fbfd);
-    printf("Closed framebuffer device");
+    printf("Closed framebuffer device\n");
 
     // Unmap the register base address
     munmap(reg_base, getpagesize());
-    printf("Unmapped register base address");
+    printf("Unmapped register base address\n");
 
     // Close the memory device
     close(mem_fd);
-    printf("Closed /dev/mem");
+    printf("Closed /dev/mem\n");
 
     return 0;
 }
