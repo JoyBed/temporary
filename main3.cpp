@@ -9,26 +9,47 @@
 #include <unistd.h>
 
 // Define the base address of the register map
-#define BASE_ADDR 0xce000000
+#define CONFIG_JPEG_HW_BASE 0xce000000
 
 // Define the register offsets
-#define JPEG_CTRL 0x00
-#define JPEG_STATUS 0x04
-#define JPEG_SRC 0x08
-#define JPEG_DST 0x0C
+#define JPEG_CTRL         0x0
+    #define JPEG_CTRL_START                      31
+    #define JPEG_CTRL_START_SHIFT                31
+    #define JPEG_CTRL_START_MASK                 0x1
 
-// Define the JPEG_CTRL register bits
-enum JPEG_CTRL_Bits {
-    START = 31,
-    ABORT = 30,
-    LENGTH = 23
-};
+    #define JPEG_CTRL_ABORT                      30
+    #define JPEG_CTRL_ABORT_SHIFT                30
+    #define JPEG_CTRL_ABORT_MASK                 0x1
+
+    #define JPEG_CTRL_LENGTH_SHIFT               0
+    #define JPEG_CTRL_LENGTH_MASK                0xffffff
+
+#define JPEG_STATUS       0x4
+    #define JPEG_STATUS_UNDERRUN                 0
+    #define JPEG_STATUS_UNDERRUN_SHIFT           0
+    #define JPEG_STATUS_UNDERRUN_MASK            0x1
+
+    #define JPEG_STATUS_OVERFLOW                 0
+    #define JPEG_STATUS_OVERFLOW_SHIFT           0
+    #define JPEG_STATUS_OVERFLOW_MASK            0x1
+
+    #define JPEG_STATUS_BUSY                     0
+    #define JPEG_STATUS_BUSY_SHIFT               0
+    #define JPEG_STATUS_BUSY_MASK                0x1
+
+#define JPEG_SRC          0x8
+    #define JPEG_SRC_ADDR_SHIFT                  0
+    #define JPEG_SRC_ADDR_MASK                   0xffffffff
+
+#define JPEG_DST          0xc
+    #define JPEG_DST_ADDR_SHIFT                  0
+    #define JPEG_DST_ADDR_MASK                   0xffffffff
 
 // Function to read a JPEG image file
 std::vector<uint8_t> readJpegImage(const std::string& filename) {
     std::ifstream file(filename, std::ios::binary);
     if (!file) {
-        std::cerr << "Error opening file: " << filename << std::endl;
+        printf("Error opening file: ");
         return {};
     }
 
@@ -39,7 +60,7 @@ std::vector<uint8_t> readJpegImage(const std::string& filename) {
     std::vector<uint8_t> imageData(fileSize);
     file.read(reinterpret_cast<char*>(imageData.data()), fileSize);
 
-    std::cout << "File opened successfully: " << filename << std::endl;
+    printf("File opened successfully: ");
 
     return imageData;
 }
@@ -48,19 +69,19 @@ int main() {
     // Open the memory device
     int mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
     if (mem_fd == -1) {
-        perror("Error opening /dev/mem");
-        return 1;
+        printf("Can not access /dev/mem\n");
+        return -1;
     }
-    std::cout << "/dev/mem opened successfully" << std::endl;
+    printf("/dev/mem opened successfully\n");
 
     // Map the register base address
-    void* reg_base = mmap(NULL, getpagesize(), PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, BASE_ADDR);
+    void* reg_base = mmap(NULL, getpagesize(), PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, CONFIG_JPEG_HW_BASE);
     if (reg_base == MAP_FAILED) {
-        perror("Error mapping register base address");
+        printf("Error mapping register base address");
         close(mem_fd);
         return 1;
     }
-    std::cout << "Register base address mapped successfully" << std::endl;
+    printf("Register base address mapped successfully");
 
     volatile uint32_t* jpeg_ctrl = (volatile uint32_t*)((char*)reg_base + JPEG_CTRL);
     volatile uint32_t* jpeg_status = (volatile uint32_t*)((char*)reg_base + JPEG_STATUS);
@@ -71,54 +92,53 @@ int main() {
     std::string filename = "image.jpg";
     std::vector<uint8_t> imageData = readJpegImage(filename);
     if (imageData.empty()) {
-        std::cerr << "Failed to read image data" << std::endl;
-        return 1;
+        printf("Failed to read image data");
+        return -1;
     }
 
-    // Initialize the decoder
-    uint32_t jpegCtrl = 0;
-    jpegCtrl |= (1 << START); // Set the START bit
+    // Initialize/reset the decoder
+    jpegCtrl = (1 << JPEG_CTRL_ABORT_SHIFT); // Set the START bit
     jpegCtrl |= (imageData.size() << LENGTH); // Set the LENGTH field
 
     // Allocate memory for the RGB565 buffer
     uint16_t* rgb565BufferPtr = new uint16_t[imageData.size() / 3 * 2];
-    std::cout << "Allocated memory for RGB565 buffer" << std::endl;
+    printf("Allocated memory for RGB565 buffer");
 
     // Set the JPEG_SRC register to the address of the JPEG image data
     uintptr_t jpegSrcAddr = reinterpret_cast<uintptr_t>(&imageData[0]);
     *jpeg_src = static_cast<uint32_t>(jpegSrcAddr);
-    std::cout << "Set JPEG_SRC register" << std::endl;
+    printf("Set JPEG_SRC register");
 
     // Set the JPEG_DST register to the address of the RGB565 buffer
     uintptr_t jpegDstAddr = reinterpret_cast<uintptr_t>(rgb565BufferPtr);
     *jpeg_dst = static_cast<uint32_t>(jpegDstAddr);
-    std::cout << "Set JPEG_DST register" << std::endl;
+    printf("Set JPEG_DST register");
 
     // Start the decoder
-    *jpeg_ctrl = jpegCtrl;
-    std::cout << "Started the decoder" << std::endl;
+    jpegCtrl = (1 << JPEG_CTRL_ABORT_SHIFT); // Set the START bit
+    printf("Started the decoder");
 
     // Wait for the decoder to finish
-    while ((*jpeg_status & 1) == 0) {
+    while ((*jpeg_status & (1 << JPEG_STATUS_BUSY_SHIFT)) == 0) {
         // Busy-wait
     }
-    std::cout << "Decoder finished" << std::endl;
+    printf("Decoder finished");
 
     // Open the framebuffer device
     int fbfd = open("/dev/fb0", O_RDWR);
     if (fbfd == -1) {
-        perror("Error opening framebuffer device");
-        return 1;
+        printf("Error opening framebuffer device");
+        return -1;
     }
-    std::cout << "/dev/fb0 opened successfully" << std::endl;
+    printf("/dev/fb0 opened successfully");
 
     // Get the framebuffer fixed screen information
     struct fb_fix_screeninfo fb_fix;
     if (ioctl(fbfd, FBIOGET_FSCREENINFO, &fb_fix) == -1) {
-        perror("Error getting framebuffer fixed screen information");
-        return 1;
+        printf("Error getting framebuffer fixed screen information");
+        return -1;
     }
-    std::cout << "Got framebuffer fixed screen information" << std::endl;
+    printf("Got framebuffer fixed screen information");
 
     // Get the framebuffer variable screen information
     struct fb_var_screeninfo fb_var;
@@ -126,15 +146,15 @@ int main() {
         perror("Error getting framebuffer variable screen information");
         return 1;
     }
-    std::cout << "Got framebuffer variable screen information" << std::endl;
+    printf("Got framebuffer variable screen information");
 
     // Map the framebuffer into memory
     char* fbmem = static_cast<char*>(mmap(NULL, fb_fix.smem_len, PROT_READ | PROT_WRITE, MAP_SHARED, fbfd, 0));
     if (fbmem == MAP_FAILED) {
-        perror("Error mapping framebuffer into memory");
+        printf("Error mapping framebuffer into memory");
         return 1;
     }
-    std::cout << "Mapped framebuffer into memory" << std::endl;
+    printf("Mapped framebuffer into memory");
 
     // Copy the RGB565 data into the framebuffer
     uint16_t* rgb565Ptr = reinterpret_cast<uint16_t*>(rgb565BufferPtr); // Use the correct pointer
@@ -144,23 +164,23 @@ int main() {
             *((uint16_t*)fbmem + y * fb_fix.line_length / 2 + x) = pixel;
         }
     }
-    std::cout << "Copied RGB565 data into framebuffer" << std::endl;
+    printf("Copied RGB565 data into framebuffer");
 
     // Unmap the framebuffer from memory
     munmap(fbmem, fb_fix.smem_len);
-    std::cout << "Unmapped framebuffer from memory" << std::endl;
+    printf("Unmapped framebuffer from memory");
 
     // Close the framebuffer device
     close(fbfd);
-    std::cout << "Closed framebuffer device" << std::endl;
+    printf("Closed framebuffer device");
 
     // Unmap the register base address
     munmap(reg_base, getpagesize());
-    std::cout << "Unmapped register base address" << std::endl;
+    printf("Unmapped register base address");
 
     // Close the memory device
     close(mem_fd);
-    std::cout << "Closed /dev/mem" << std::endl;
+    printf("Closed /dev/mem");
 
     return 0;
 }
