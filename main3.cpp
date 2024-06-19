@@ -97,8 +97,8 @@ int main() {
     }
 
     // Initialize/reset the decoder
-    jpegctrl = (1 << JPEG_CTRL_ABORT_SHIFT); // Set the ABORT bit
-    //jpegctrl = (imageData.size() << JPEG_CTRL_LENGTH_SHIFT); // Set the LENGTH field
+    jpeg_ctrl = (1 << JPEG_CTRL_ABORT_SHIFT); // Set the ABORT bit
+    //jpeg_ctrl = (imageData.size() << JPEG_CTRL_LENGTH_SHIFT); // Set the LENGTH field
 
     // Allocate memory for the RGB565 buffer
     uint16_t* rgb565BufferPtr = new uint16_t[imageData.size() / 3 * 2];
@@ -115,8 +115,8 @@ int main() {
     printf("Set JPEG_DST register");
 
     // Start the decoder
-    jpegctrl = (1 << JPEG_CTRL_ABORT_SHIFT); // Set the START bit
-    jpegctrl = (1 << JPEG_CTRL_START_SHIFT) | imageData.size()); // Set the START bit
+    jpeg_ctrl = (1 << JPEG_CTRL_ABORT_SHIFT); // Set the ABORT bit
+    jpeg_ctrl = (1 << JPEG_CTRL_START_SHIFT) | imageData.size()); // Set the START bit
     printf("Started the decoder");
 
     // Wait for the decoder to finish
@@ -124,6 +124,7 @@ int main() {
         // Busy-wait
     }
     printf("Decoder finished");
+    jpeg_ctrl = (1 << JPEG_CTRL_ABORT_SHIFT); // Set the ABORT bit
 
     // Open the framebuffer device
     int fbfd = open("/dev/fb0", O_RDWR);
