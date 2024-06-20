@@ -7,6 +7,7 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/shm.h>
 
 // Define the base address of the register map
 #define CONFIG_JPEG_HW_BASE 0xce000000
@@ -104,13 +105,23 @@ int main() {
     uint16_t* rgb565BufferPtr = new uint16_t[imageData.size() / 3 * 2];
     printf("Allocated memory for RGB565 buffer\n");
 
-    // Map the image data into physical memory
-    void* imagePhysAddr = mmap(NULL, imageData.size(), PROT_READ, MAP_SHARED | MAP_LOCKED, -1, 0);
-    if (imagePhysAddr == MAP_FAILED) {
-        printf("Error mapping image data into physical memory\n");
+    // Create a shared memory segment
+    int shm_fd = shmget(IPC_PRIVATE, imageData.size(), IPC_CREAT | 0600);
+    if (shm_fd == -1) {
+        printf("Error creating shared memory segment\n");
         return -1;
     }
-    
+
+    // Attach the shared memory segment to the process
+    void* imagePhysAddr = shmat(shm_fd, NULL, 0);
+    if (imagePhysAddr == (void*)-1) {
+        printf("Error attaching shared memory segment\n");
+        return -1;
+    }
+
+    // Copy the image data into the shared memory segment
+    std::copy(imageData.begin(), imageData.end(), static_cast<uint8_t*>(imagePhysAddr));
+
     // Set the JPEG_SRC register to the physical address of the JPEG image data
     uintptr_t jpegSrcAddr = reinterpret_cast<uintptr_t>(imagePhysAddr);
     *jpeg_src = static_cast<uint32_t>(jpegSrcAddr);
@@ -122,19 +133,20 @@ int main() {
     printf("Set JPEG_DST register\n");
 
     // Start the decoder
-    //*jpeg_ctrl = (1 << JPEG_CTRL_ABORT_SHIFT); // Set the ABORT bit
-    //*jpeg_ctrl = ((1 << JPEG_CTRL_START_SHIFT) | (imageData.size() & JPEG_CTRL_LENGTH_MASK)); // Set the START bit and LENGTH field
     *jpeg_ctrl = ((1 << JPEG_CTRL_START_SHIFT) | imageData.size()); // Set the START bit and LENGTH field
     printf("Started the decoder\n");
 
     // Wait for the decoder to finish
-    while ((*jpeg_status & (1 << JPEG_STATUS_BUSY_SHIFT)) != 0) {
+    while ((*jpeg_status & (1 << JPEG_STATUS_BUSY_SHIFT))!= 0) {
         // Busy-wait
     }
     printf("Decoder finished\n");
 
-    munmap(imagePhysAddr, imageData.size()); //Unmapping the source buffer
-    *jpeg_ctrl = (1 << JPEG_CTRL_ABORT_SHIFT); // Set the ABORT bit
+    // Detach the shared memory segment from the process
+    shmdt(imagePhysAddr);
+
+    // Remove the shared memory segment
+    shmctl(shm_fd, IPC_RMID, NULL);
 
     // Open the framebuffer device
     int fbfd = open("/dev/fb0", O_RDWR);
