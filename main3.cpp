@@ -115,8 +115,9 @@ int main() {
     printf("Set JPEG_DST register\n");
 
     // Start the decoder
-    *jpeg_ctrl = (1 << JPEG_CTRL_ABORT_SHIFT); // Set the ABORT bit
-    *jpeg_ctrl = ((1 << JPEG_CTRL_START_SHIFT) | (imageData.size() & JPEG_CTRL_LENGTH_MASK)); // Set the START bit and LENGTH field
+    //*jpeg_ctrl = (1 << JPEG_CTRL_ABORT_SHIFT); // Set the ABORT bit
+    //*jpeg_ctrl = ((1 << JPEG_CTRL_START_SHIFT) | (imageData.size() & JPEG_CTRL_LENGTH_MASK)); // Set the START bit and LENGTH field
+    *jpeg_ctrl = ((1 << JPEG_CTRL_START_SHIFT) | imageData.size()); // Set the START bit and LENGTH field
     printf("Started the decoder\n");
 
     // Wait for the decoder to finish
