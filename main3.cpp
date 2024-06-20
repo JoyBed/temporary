@@ -83,10 +83,10 @@ int main() {
     }
     printf("Register base address mapped successfully\n");
 
-    volatile uint32_t* jpeg_ctrl = (volatile uint32_t*)((char*)reg_base + JPEG_CTRL);
-    volatile uint32_t* jpeg_status = (volatile uint32_t*)((char*)reg_base + JPEG_STATUS);
-    volatile uint32_t* jpeg_src = (volatile uint32_t*)((char*)reg_base + JPEG_SRC);
-    volatile uint32_t* jpeg_dst = (volatile uint32_t*)((char*)reg_base + JPEG_DST);
+    volatile uint32_t* jpeg_ctrl = ((volatile uint32_t*)((char*)reg_base + JPEG_CTRL) / 4);
+    volatile uint32_t* jpeg_status = ((volatile uint32_t*)((char*)reg_base + JPEG_STATUS) / 4);
+    volatile uint32_t* jpeg_src = ((volatile uint32_t*)((char*)reg_base + JPEG_SRC) / 4);
+    volatile uint32_t* jpeg_dst = ((volatile uint32_t*)((char*)reg_base + JPEG_DST) / 4);
 
     // Open the JPEG image file
     std::string filename = "image.jpg";
@@ -122,7 +122,6 @@ int main() {
     // Wait for the decoder to finish
     while ((*jpeg_status & (1 << JPEG_STATUS_BUSY_SHIFT)) != 0) {
         // Busy-wait
-        printf("%d\n", *jpeg_status);
     }
     printf("Decoder finished\n");
     *jpeg_ctrl = (1 << JPEG_CTRL_ABORT_SHIFT); // Set the ABORT bit
