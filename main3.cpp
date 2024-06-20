@@ -133,7 +133,7 @@ int main() {
     uintptr_t jpegDstAddr = reinterpret_cast<uintptr_t>(rgb565BufferPtr);
     *jpeg_dst = static_cast<uint32_t>(jpegDstAddr);
     printf("Set JPEG_DST register\n");
-    printf("Original value: %zd", *jpegDstAddr);
+    printf("Original value: %zd", jpegDstAddr);
     printf("Value from register: %zu", *jpeg_dst);
 
     // Start the decoder
