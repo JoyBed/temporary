@@ -126,15 +126,15 @@ int main() {
     uintptr_t jpegSrcAddr = reinterpret_cast<uintptr_t>(imagePhysAddr);
     *jpeg_src = static_cast<uint32_t>(jpegSrcAddr);
     printf("Set JPEG_SRC register\n");
-    printf("Original value: %zd", imagePhysAddr);
-    printf("Value from register: %zu", *jpeg_src);
+    printf("Original value: %zd\n", imagePhysAddr);
+    printf("Value from register: %zu\n", *jpeg_src);
 
     // Set the JPEG_DST register to the address of the RGB565 buffer
     uintptr_t jpegDstAddr = reinterpret_cast<uintptr_t>(rgb565BufferPtr);
     *jpeg_dst = static_cast<uint32_t>(jpegDstAddr);
     printf("Set JPEG_DST register\n");
-    printf("Original value: %zd", jpegDstAddr);
-    printf("Value from register: %zu", *jpeg_dst);
+    printf("Original value: %zd\n", jpegDstAddr);
+    printf("Value from register: %zu\n", *jpeg_dst);
 
     // Start the decoder
     *jpeg_ctrl = ((1 << JPEG_CTRL_START_SHIFT) | imageData.size()); // Set the START bit and LENGTH field
