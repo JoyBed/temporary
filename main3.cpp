@@ -48,7 +48,7 @@
 // Function to read a JPEG image file
 std::vector<uint8_t> readJpegImage(const std::string& filename) {
     std::ifstream file(filename, std::ios::binary);
-    if (!file) {
+    if (!file.is_open()) {
         printf("Error opening file: ");
         return {};
     }
@@ -83,10 +83,10 @@ int main() {
     }
     printf("Register base address mapped successfully\n");
 
-    volatile uint32_t* jpeg_ctrl = ((volatile uint32_t*)((char*)reg_base + JPEG_CTRL) / 4);
-    volatile uint32_t* jpeg_status = ((volatile uint32_t*)((char*)reg_base + JPEG_STATUS) / 4);
-    volatile uint32_t* jpeg_src = ((volatile uint32_t*)((char*)reg_base + JPEG_SRC) / 4);
-    volatile uint32_t* jpeg_dst = ((volatile uint32_t*)((char*)reg_base + JPEG_DST) / 4);
+    volatile uint32_t* jpeg_ctrl = (volatile uint32_t*)((char*)reg_base + JPEG_CTRL);
+    volatile uint32_t* jpeg_status = (volatile uint32_t*)((char*)reg_base + JPEG_STATUS);
+    volatile uint32_t* jpeg_src = (volatile uint32_t*)((char*)reg_base + JPEG_SRC);
+    volatile uint32_t* jpeg_dst = (volatile uint32_t*)((char*)reg_base + JPEG_DST);
 
     // Open the JPEG image file
     std::string filename = "image.jpg";
