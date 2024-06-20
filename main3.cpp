@@ -104,8 +104,15 @@ int main() {
     uint16_t* rgb565BufferPtr = new uint16_t[imageData.size() / 3 * 2];
     printf("Allocated memory for RGB565 buffer\n");
 
-    // Set the JPEG_SRC register to the address of the JPEG image data
-    uintptr_t jpegSrcAddr = reinterpret_cast<uintptr_t>(&imageData[0]);
+    // Map the image data into physical memory
+    void* imagePhysAddr = mmap(NULL, imageData.size(), PROT_READ, MAP_SHARED | MAP_LOCKED, -1, 0);
+    if (imagePhysAddr == MAP_FAILED) {
+        printf("Error mapping image data into physical memory\n");
+        return -1;
+    }
+    
+    // Set the JPEG_SRC register to the physical address of the JPEG image data
+    uintptr_t jpegSrcAddr = reinterpret_cast<uintptr_t>(imagePhysAddr);
     *jpeg_src = static_cast<uint32_t>(jpegSrcAddr);
     printf("Set JPEG_SRC register\n");
 
@@ -125,6 +132,8 @@ int main() {
         // Busy-wait
     }
     printf("Decoder finished\n");
+
+    munmap(imagePhysAddr, imageData.size()); //Unmapping the source buffer
     *jpeg_ctrl = (1 << JPEG_CTRL_ABORT_SHIFT); // Set the ABORT bit
 
     // Open the framebuffer device
