@@ -126,7 +126,7 @@ int main() {
     uintptr_t jpegSrcAddr = reinterpret_cast<uintptr_t>(imagePhysAddr);
     *jpeg_src = static_cast<uint32_t>(jpegSrcAddr);
     printf("Set JPEG_SRC register\n");
-    jpegsrcreg = static_cast<uint32_t>(*jpeg_src);
+    uint32_t jpegsrcreg = static_cast<uint32_t>(*jpeg_src);
     printf("Original value: %zd\n", imagePhysAddr);
     printf("Value from register: %zd\n", jpegsrcreg);
 
@@ -134,7 +134,7 @@ int main() {
     uintptr_t jpegDstAddr = reinterpret_cast<uintptr_t>(rgb565BufferPtr);
     *jpeg_dst = static_cast<uint32_t>(jpegDstAddr);
     printf("Set JPEG_DST register\n");
-    jpegdstreg = static_cast<uint32_t>(*jpeg_dst);
+    uint32_t jpegdstreg = static_cast<uint32_t>(*jpeg_dst);
     printf("Original value: %zd\n", jpegDstAddr);
     printf("Value from register: %zd\n", jpegdstreg);
 
