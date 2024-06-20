@@ -49,7 +49,7 @@
 std::vector<uint8_t> readJpegImage(const std::string& filename) {
     std::ifstream file(filename, std::ios::binary);
     if (!file.is_open()) {
-        printf("Error opening file: ");
+        printf("Error opening file\n");
         return {};
     }
 
@@ -60,7 +60,7 @@ std::vector<uint8_t> readJpegImage(const std::string& filename) {
     std::vector<uint8_t> imageData(fileSize);
     file.read(reinterpret_cast<char*>(imageData.data()), fileSize);
 
-    printf("File opened successfully: ");
+    printf("File opened successfully\n");
 
     return imageData;
 }
